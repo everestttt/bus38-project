@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from flask import Flask, render_template, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_sqlalchemy.query import Query
 from flask_wtf import FlaskForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms import StringField, PasswordField, SubmitField
@@ -44,6 +45,7 @@ class Assignment(db.Model):
     title = db.Column(db.String(200), nullable=False)
     due_at = db.Column(db.DateTime(timezone=True), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    completed = db.Column(db.Boolean, nullable=False, default=0)
 
 
 @login_manager.user_loader
@@ -105,11 +107,23 @@ def dashboard():
 
     assignments = (
         Assignment.query.filter_by(user_id=current_user.id)
-        .order_by(Assignment.due_at.asc())
+        .order_by(Assignment.completed.asc(), Assignment.due_at.asc())
         .all()
     )
 
     return render_template("dashboard.html", form=form, assignments=assignments)
+
+
+@app.route("/complete/<int:id>", methods=["GET", "POST"])
+@login_required
+def complete(id):
+    assignment = Assignment.query.get_or_404(id)
+    if current_user.id != assignment.user_id:
+        flash("You are not authorised to access this assignment", "security")
+        return redirect(url_for("dashboard"))
+    assignment.completed = not assignment.completed
+    db.session.commit()
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/register", methods=["GET", "POST"])
