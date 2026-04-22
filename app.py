@@ -52,7 +52,7 @@ class Assignment(db.Model):
         if self.completed:
             return False
         else:
-            return self.due_at <= (datetime.now() + timedelta(days=7))
+            return self.due_at <= (datetime.now() + timedelta(days=5))
 
 
 @login_manager.user_loader
