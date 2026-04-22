@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -46,6 +46,13 @@ class Assignment(db.Model):
     due_at = db.Column(db.DateTime(timezone=True), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     completed = db.Column(db.Boolean, nullable=False, default=0)
+
+    @property
+    def high_priority(self):
+        if self.completed:
+            return False
+        else:
+            return self.due_at <= (datetime.now() + timedelta(days=7))
 
 
 @login_manager.user_loader
